@@ -72,18 +72,22 @@ python data_pipeline.py upsert
 ### MISC
 VM preparation scripts/commands
 
-# add the following to .bash_aliases
+add the following to .bash_aliases
+``` alias python='python3' ```
 
-alias python='python3'
-. ./.bash_aliases
-
+install the following packages + python dependencies
+```
 sudo apt install python3-pip
 sudo apt install git
 sudo apt install python3-venv
-python -m venv myenv
-. myenv/bin/activate
 pip install poetry
 cd /root/pinecone-workshop/data
 poetry install
+```
 
-
+run these commands on vm startup
+```
+. ./.bash_aliases
+python -m venv myenv
+. myenv/bin/activate
+```

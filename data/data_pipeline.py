@@ -21,8 +21,8 @@ PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
 
 # Commented out some sections to reduce the scrape time
-# news_sections = ["us", "world", "politics", "business", "health", "entertainment", "style", "travel", "sports"]
-news_sections = ["world", "politics", "business"]
+news_sections = ["us", "world", "politics", "business", "health", "entertainment", "style", "travel", "sports"]
+#news_sections = ["world", "politics", "business"]
 
 def get_article_urls(section):
     articles = []
@@ -37,7 +37,7 @@ def get_article_urls(section):
 
     articles_no_duplicates = list(set(articles))
 
-    return list(articles_no_duplicates)
+    return list(articles_no_duplicates)[:3]
 
 def get_article_details(urls):
     details = []
