@@ -70,7 +70,8 @@ python data_pipeline.py upsert
 ```
 
 ### MISC
-VM preparation scripts/commands
+
+#### VM Image Customizations
 
 add the following to .bash_aliases
 ``` alias python='python3' ```
@@ -85,9 +86,13 @@ cd /root/pinecone-workshop/data
 poetry install
 ```
 
+#### VM Image Startup scripts
+
 run these commands on vm startup
 ```
 . ./.bash_aliases
 python -m venv myenv
 . myenv/bin/activate
+cd /root/pinecone-workshop/data 
+poetry shell
 ```
