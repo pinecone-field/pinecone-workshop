@@ -63,7 +63,7 @@ def create_jsonl_file(section, article_details):
             for text_embedding in generate_embeddings_from_text(article_detail['text']):
                 doc_id = get_article_id(article_detail['url'])
                 jsonl_element = {}
-                jsonl_element['id'] = f'doc-{doc_id}#chunk{text_embedding['chunk_id']}'
+                jsonl_element['id'] = f"doc-{doc_id}#chunk{text_embedding['chunk_id']}"
                 jsonl_element['values'] = text_embedding['embedding']
                 jsonl_element['metadata'] = {"text": text_embedding['text'], 
                                              "scrape_date": article_detail['scrape_date'], 

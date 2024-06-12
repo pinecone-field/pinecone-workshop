@@ -68,3 +68,22 @@ This command will delete the vectors in your namespace. It will NOT delete the J
 ```
 python data_pipeline.py upsert
 ```
+
+### MISC
+VM preparation scripts/commands
+
+# add the following to .bash_aliases
+
+alias python='python3'
+. ./.bash_aliases
+
+sudo apt install python3-pip
+sudo apt install git
+sudo apt install python3-venv
+python -m venv myenv
+. myenv/bin/activate
+pip install poetry
+cd /root/pinecone-workshop/data
+poetry install
+
+
