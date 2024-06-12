@@ -6,6 +6,8 @@ Quickstart guide for running the data pipeline for a Pinecone workshop. The end 
 1. Crease JSONL data files that contain the text chunks for each web scrape, vector representation for each chunk and key meta-data fields like "source" and "scrape_date"
 1. Upserts the JSONL data files into Pinecone
 
+#### IMPORTANT: Before running the data pipeline, you must create a serverless pinecone index.
+
 ### Step 1 - Install dependencies
 
 Setup virtual environment and install the required python packages. If you do not have poetry, you will need to install
@@ -39,7 +41,16 @@ python data_pipeline.py scrape
 python data_pipeline.py upsert
 ```
 
-### Step 5 - Run a test query in Pinecone console
+### Step 5 - Run data pipeline - print 3 test embeddings
+
+```
+python data_pipeline.py print
+```
+
+Copy one TEST EMBEDDING value so we can paste it into the Pinecone console for a manual query test
+to validate TEST EMBEDDING METADATA and ANN query accuracy.
+
+### Step 6 - Run a test query in Pinecone console
 
 1. Login to the pinecone console
 1. Select your workshop index
@@ -50,7 +61,7 @@ python data_pipeline.py upsert
 1. Click "Query" button
 1. Validate that the "text" metadata field in the first entry matches the "text" entry in your JSONL data file
 
-### Step 6 - Run data pipeline - pinecone delete
+### Step 7 - Run data pipeline - pinecone delete
 
 This command will delete the vectors in your namespace. It will NOT delete the JSONL data that you web scraped. 
 

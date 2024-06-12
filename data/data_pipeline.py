@@ -11,16 +11,18 @@ from pinecone import Pinecone
 from transformers import AutoModel, AutoTokenizer
 from pinecone import Pinecone
 import pandas as pd
+import itertools
 
 load_dotenv()
 
 API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
 
 # Commented out some sections to reduce the scrape time
 # news_sections = ["us", "world", "politics", "business", "health", "entertainment", "style", "travel", "sports"]
-news_sections = ["us", "world", "politics"]
+news_sections = ["world", "politics", "business"]
 
 def get_article_urls(section):
     articles = []
@@ -49,7 +51,7 @@ def get_article_details(urls):
             text = data['articleBody']
             details.append({"url": url, "text": text, "scrape_date": date.today().strftime("%m/%d/%Y")})
             print(f"Web scraped article from {url}")
-            time.sleep(random.uniform(.5, 1))  
+            time.sleep(random.uniform(.1, 1))  
         except Exception as e:
             print(f"Web scraped article from {url}: {e}")
     print(f"Web scraped {len(details)} articles")
@@ -100,15 +102,26 @@ def scrape():
 def upsert():
     pc = Pinecone(api_key=API_KEY)
     index = pc.Index(PINECONE_INDEX_NAME)
-    
-    directory_path = os.path.join(os.path.dirname(__file__), "./jsonl")
 
-    for filename in os.listdir(directory_path):
+    for filename in os.listdir(DATA_DIR):
         if filename.endswith('.jsonl'):
-            filepath = os.path.join(directory_path, filename)
+            filepath = os.path.join(DATA_DIR, filename)
             with open(filepath, 'r') as file:
                 df = pd.read_json(file, lines=True)
                 index.upsert_from_dataframe(df, namespace=PINECONE_NAMESPACE)
+
+def print_test_vectors():
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.jsonl'):
+            filepath = os.path.join(DATA_DIR, filename)
+            with open(filepath, 'r') as file:
+                for line in itertools.islice(file, 3):
+                    data = json.loads(line)
+                    print(f'----- TEST EMBEDDING -----')
+                    values = str(data["values"]).replace('[', '').replace(']', '')
+                    print(f'{values}\n\n')
+                    print(f'----- TEST EMBEDDING METADATA -----')
+                    print(f'{data["metadata"]}\n\n')
 
 def delete_data():
     pc = Pinecone(api_key=API_KEY)
@@ -125,13 +138,15 @@ def get_article_id(url):
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for upserting and deleted pinecone index data")
-    parser.add_argument("action", choices=["scrape", "upsert", "delete"], help="Action to perform: 'scrape' to scrape data from base url, 'upsert' to insert or update data, 'delete' to delete all data in namespace")
+    parser.add_argument("action", choices=["scrape", "upsert", "delete", "print"], help="Action to perform: 'scrape' to scrape data from base url, 'upsert' to insert or update data, 'delete' to delete all data in namespace")
     args = parser.parse_args()
 
     if args.action == "scrape":
         scrape()
     elif args.action == "upsert":
         upsert()
+    elif args.action == "print":
+        print_test_vectors()
     elif args.action == "delete":
         delete_data()
 
