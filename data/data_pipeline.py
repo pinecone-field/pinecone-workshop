@@ -39,7 +39,7 @@ def get_article_urls(section):
 
     return list(articles_no_duplicates)[:3]
 
-def get_article_details(urls):
+def get_article_details(urls, section):
     details = []
     #for url in urls:
     for url in urls:
@@ -54,7 +54,7 @@ def get_article_details(urls):
             time.sleep(random.uniform(.1, 1))  
         except Exception as e:
             print(f"Web scraped article from {url}: {e}")
-    print(f"Web scraped {len(details)} articles")
+    print(f"Web scraped {len(details)} articles from section: {section}")
     return details
 
 def create_jsonl_file(section, article_details):
@@ -72,7 +72,7 @@ def create_jsonl_file(section, article_details):
                
                 f.write(json.dumps(jsonl_element) + '\n')
             print(f"Wrote article as doc_id: {doc_id} to jsonl file")
-    print(f"Wrote {len(article_details)} articles to data directory")
+    print(f"Wrote {len(article_details)} articles to data directory for section: {section}")
 
 def generate_embeddings_from_text(text):
     
@@ -96,7 +96,7 @@ def generate_embeddings_from_text(text):
 def scrape():
     for section in news_sections:
         urls = get_article_urls(section)
-        article_details = get_article_details(urls)
+        article_details = get_article_details(urls, section)
         create_jsonl_file(section, article_details)
 
 def upsert():
