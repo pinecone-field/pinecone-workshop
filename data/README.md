@@ -35,13 +35,19 @@ PINECONE_API_KEY=[YOUR_PINECONE_API_KEY]
 python data_pipeline.py scrape
 ```
 
-### Step 4 - Run data pipeline - pinecone upsert
+### Step 4 - View a web scrape JSONL file
+
+```
+cat ./jsonl/cnn_articles_us.jsonl
+```
+
+### Step 5 - Run data pipeline - pinecone upsert
 
 ```
 python data_pipeline.py upsert
 ```
 
-### Step 5 - Run data pipeline - print 3 test embeddings
+### Step 6 - Run data pipeline - print 3 test embeddings
 
 ```
 python data_pipeline.py print
@@ -50,7 +56,7 @@ python data_pipeline.py print
 Copy one TEST EMBEDDING value so we can paste it into the Pinecone console for a manual query test
 to validate TEST EMBEDDING METADATA and ANN query accuracy.
 
-### Step 6 - Run a test query in Pinecone console
+### Step 7 - Run a test query in Pinecone console
 
 1. Login to the pinecone console
 1. Select your workshop index
@@ -61,12 +67,12 @@ to validate TEST EMBEDDING METADATA and ANN query accuracy.
 1. Click "Query" button
 1. Validate that the "text" metadata field in the first entry matches the "text" entry in your JSONL data file
 
-### Step 7 - Run data pipeline - pinecone delete
+### Step 8 - Run data pipeline - pinecone delete
 
 This command will delete the vectors in your namespace. It will NOT delete the JSONL data that you web scraped. 
 
 ```
-python data_pipeline.py upsert
+python data_pipeline.py delete
 ```
 
 ### MISC
@@ -82,17 +88,7 @@ sudo apt install python3-pip
 sudo apt install git
 sudo apt install python3-venv
 pip install poetry
+git clone https://github.com/pinecone-field/pinecone-workshop.git 
 cd /root/pinecone-workshop/data
 poetry install
-```
-
-#### VM Image Startup scripts
-
-run these commands on vm startup
-```
-. ./.bash_aliases
-python -m venv myenv
-. myenv/bin/activate
-cd /root/pinecone-workshop/data 
-poetry shell
 ```
