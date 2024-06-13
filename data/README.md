@@ -8,7 +8,7 @@ Quickstart guide for running the data pipeline for a Pinecone workshop. The end 
 
 #### IMPORTANT: Before running the data pipeline, you must create a serverless pinecone index.
 
-### Step 1 - Install dependencies
+### Step 0 - Install dependencies (not needed for Instruqt)
 
 Setup virtual environment and install the required python packages. If you do not have poetry, you will need to install
 with this command:
@@ -19,6 +19,10 @@ pip install poetry
 poetry install
 poetry shell
 ```
+
+### Step 1 - Setup terminal
+. myenv/bin/activate
+poetry shell
 
 ### Step 2 - Set environment variables
 Create a file named ```.env``` that has the following variables:
@@ -79,7 +83,7 @@ python data_pipeline.py delete
 
 #### VM Image Customizations
 
-add the following to .bash_aliases
+add the following to .bashrc
 ``` alias python='python3' ```
 
 install the following packages + python dependencies
@@ -90,5 +94,8 @@ sudo apt install python3-venv
 pip install poetry
 git clone https://github.com/pinecone-field/pinecone-workshop.git 
 cd /root/pinecone-workshop/data
+python -m venv myenv
+. myenv/bin/activate
 poetry install
+
 ```
