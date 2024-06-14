@@ -16,6 +16,7 @@ PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
 
+
 def create_pinecone_connection():
     pc = Pinecone(api_key=API_KEY)
     return pc
@@ -128,14 +129,14 @@ def create_prompt(query, context_str):
 def embed(query, bedrock):
     print("Query: " + query)
     query_embedding = titan_text_embeddings(query, bedrock)
-    print("Vector embedding generated: " + query_embedding)
+    print("Vector embedding generated: " + str(query_embedding))
     return query_embedding
 
 def search(query, bedrock, pc):
     index = pc.Index(PINECONE_INDEX_NAME)
     query_embedding = embed(query, bedrock)
     res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
-    print("Semantic Search results: " + res)
+    print("Semantic Search results: " + str(res))
     return res
 
 def invoke(query, bedrock, pc):
@@ -143,7 +144,7 @@ def invoke(query, bedrock, pc):
     contexts = [match.metadata["text"] for match in search_res.matches]
     context_str = construct_context(contexts=contexts)
     prompt = create_prompt(query, context_str)
-    response = invoke_bedrock(prompt)
+    response = invoke_bedrock(prompt, bedrock)
     return response
 
 
