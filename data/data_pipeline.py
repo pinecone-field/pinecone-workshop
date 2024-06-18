@@ -12,12 +12,15 @@ from transformers import AutoModel, AutoTokenizer
 from pinecone import Pinecone
 import pandas as pd
 import itertools
+import boto3
+from botocore.config import Config
 
 load_dotenv()
 
 API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
+AWS_TITAN_ENABLED = os.getenv("AWS_TITAN_ENABLED").lower() == 'true'
 DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
 
 # Commented out some sections to reduce the scrape time
@@ -75,23 +78,50 @@ def create_jsonl_file(section, article_details):
     print(f"Wrote {len(article_details)} articles to data directory for section: {section}")
 
 def generate_embeddings_from_text(text):
-    
-    model = AutoModel.from_pretrained('intfloat/multilingual-e5-large')
-    tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')
     chunk_size = 512
     overlap = 50
     text_embeddings = []
-    
     chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size-overlap)]
-    for chunk in chunks:
-        tokens = tokenizer(chunk, return_tensors='pt', padding=True)
-        outputs = model(**tokens)
-        embedding = outputs.last_hidden_state.mean(dim=1).squeeze().tolist()
+    
+    if AWS_TITAN_ENABLED:
+        bedrock = create_bedrock_connection()
+        model_id = 'amazon.titan-embed-text-v1'
+        application_json = 'application/json' 
         
-        text_embeddings.append({'text':chunk,
-                                'chunk_id':chunks.index(chunk),
-                                'embedding':embedding })
+        for chunk in chunks:
+            body = json.dumps({"inputText": chunk})
+            response = bedrock.invoke_model(body=body, modelId=model_id, accept=application_json, contentType=application_json)
+            response_body = json.loads(response['body'].read())
+            embedding = response_body.get('embedding')
+            
+            text_embeddings.append({'text':chunk,
+                                    'chunk_id':chunks.index(chunk),
+                                    'embedding':embedding })
+        print(f"Generated embeddings for {len(chunks)} chunks using AWS Titan")
+    else:
+        model = AutoModel.from_pretrained('intfloat/multilingual-e5-large')
+        tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')
+        
+        for chunk in chunks:
+            tokens = tokenizer(chunk, return_tensors='pt', padding=True)
+            outputs = model(**tokens)
+            embedding = outputs.last_hidden_state.mean(dim=1).squeeze().tolist()
+            
+            text_embeddings.append({'text':chunk,
+                                    'chunk_id':chunks.index(chunk),
+                                    'embedding':embedding })
+        print(f"Generated embeddings for {len(chunks)} chunks using E5 Large model")
     return text_embeddings
+
+def create_bedrock_connection():
+    config = Config(connect_timeout=5, read_timeout=60, retries={"total_max_attempts": 20, "mode": "adaptive"})
+    region = 'us-west-2'
+    bedrock = boto3.client(
+                service_name='bedrock-runtime',
+                region_name=region,
+                endpoint_url=f'https://bedrock-runtime.{region}.amazonaws.com',
+                                    config=config)
+    return bedrock
 
 def scrape():
     for section in news_sections:
