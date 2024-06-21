@@ -31,7 +31,13 @@ Create a file named ```.env``` that has the following variables:
 PINECONE_NAMESPACE=cnn
 PINECONE_INDEX_NAME=workshop-[YOUR_NAME]
 PINECONE_API_KEY=[YOUR_PINECONE_API_KEY]
+AWS_TITAN_ENABLED=true
 ```
+
+```AWS_TITAN_ENABLE``` will only use AWS Titan for embeddings if set to "true". Otherwise, it will default to E5-Large. 
+
+**IMPORTANT: AWS Titan embeddings are 1536 dimensions and E5-Large embeddings are 1024 dimensions. You must set specify the correct dimension
+value on index creation otherwise upsert will fail.**
 
 ### Step 3 - Run data pipeline - web scrape
 
