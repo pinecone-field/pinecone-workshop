@@ -92,7 +92,7 @@ def invoke_bedrock(query, bedrock):
 def construct_context(contexts: list[str]) -> str:
     chosen_sections = []
     chosen_sections_len = 0
-    max_section_len = 5000
+    max_section_len = 1000
     separator = "\n"
 
     for text in contexts:
@@ -103,9 +103,6 @@ def construct_context(contexts: list[str]) -> str:
             break
         chosen_sections.append(text)
     concatenated_doc = separator.join(chosen_sections)
-    print(
-        f"With maximum sequence length {max_section_len}, selected top {len(chosen_sections)} document sections: \n{concatenated_doc}"
-    )
     return concatenated_doc
 
 def create_prompt(query, context_str):
@@ -121,7 +118,7 @@ def create_prompt(query, context_str):
 
     Assistant:
     """
-    print("Query Prompt:", str(prompt))
+
     return prompt
 
         
