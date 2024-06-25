@@ -1,14 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pinecone RAG</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Sample App</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        img {
+            max-width: 200px;
+            max-height: 200px;
+        }
+        #data td {
+            vertical-align: middle;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="row">
+        <div class="col d-flex">
+            <a href="https://www.pinecone.io/">
+                <img src="pinecone-logo-black.png" alt="Pinecone Logo">
+            </a>
+        </div>
+        <div class="col d-flex align-items-center justify-content-center pt-3">
+            <h3>Sample App - Pinecone RAG Use Case</h3>
+        </div>
+    </div>
     <div class="form-group">
         <label for="userQuestion">Enter your question:</label>
         <input type="text" class="form-control" id="userQuestion" placeholder="Type your question here">

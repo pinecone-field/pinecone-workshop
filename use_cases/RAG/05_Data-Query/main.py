@@ -78,6 +78,8 @@ def invoke_bedrock(query, bedrock):
                     output.append(text)
                     print(text,end='')
                     i+=1
+        qry_resp = ''.join(output)
+        return qry_resp
                 
     except botocore.exceptions.ClientError as error:
         
@@ -135,7 +137,7 @@ async def invoke(request: Request):
     start_time = time.time()
     search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     end_time = time.time()
-    #print(f"Pinecone query execution time: {(end_time - start_time) * 1000} ms")
+    print(f"Pinecone query execution time: {(end_time - start_time) * 1000} ms")
 
     contexts = [match.metadata["text"] for match in search_res.matches]
     context_str = construct_context(contexts=contexts)
