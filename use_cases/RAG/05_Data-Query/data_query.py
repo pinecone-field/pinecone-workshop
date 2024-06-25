@@ -92,7 +92,7 @@ def invoke_bedrock(query, bedrock):
 def construct_context(contexts: list[str]) -> str:
     chosen_sections = []
     chosen_sections_len = 0
-    max_section_len = 5000
+    max_section_len = 1000
     separator = "\n"
 
     for text in contexts:
@@ -103,9 +103,6 @@ def construct_context(contexts: list[str]) -> str:
             break
         chosen_sections.append(text)
     concatenated_doc = separator.join(chosen_sections)
-    print(
-        f"With maximum sequence length {max_section_len}, selected top {len(chosen_sections)} document sections: \n{concatenated_doc}"
-    )
     return concatenated_doc
 
 def create_prompt(query, context_str):
@@ -121,7 +118,7 @@ def create_prompt(query, context_str):
 
     Assistant:
     """
-    print("Query Prompt:", str(prompt))
+
     return prompt
 
         
@@ -134,24 +131,36 @@ def embed(query, bedrock):
 
 def search(query, bedrock, pc):
     index = pc.Index(PINECONE_INDEX_NAME)
-    query_embedding = embed(query, bedrock)
+    query_embedding = titan_text_embeddings(query, bedrock)
     res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     print("Semantic Search results: " + str(res))
     return res
 
-def invoke(query, bedrock, pc):
-    search_res = search(query, bedrock, pc)
+def prompt(query, bedrock, pc):
+    index = pc.Index(PINECONE_INDEX_NAME)
+    query_embedding = titan_text_embeddings(query, bedrock)
+    search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     contexts = [match.metadata["text"] for match in search_res.matches]
     context_str = construct_context(contexts=contexts)
-    prompt = create_prompt(query, context_str)
-    response = invoke_bedrock(prompt, bedrock)
+    llm_prompt = create_prompt(query, context_str)
+    print("Prompt generated: " + str(llm_prompt))
+    return llm_prompt
+
+def invoke(query, bedrock, pc):
+    index = pc.Index(PINECONE_INDEX_NAME)
+    query_embedding = titan_text_embeddings(query, bedrock)
+    search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
+    contexts = [match.metadata["text"] for match in search_res.matches]
+    context_str = construct_context(contexts=contexts)
+    llm_prompt = create_prompt(query, context_str)
+    response = invoke_bedrock(llm_prompt, bedrock)
     return response
 
 
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for querying pinecone index data")
-    parser.add_argument("action", choices=["embed", "search", "invoke"], help="Action to perform: 'embed' generate the vector embeddings, 'search' to perform semantic search, 'invoke' to implement RAG")
+    parser.add_argument("action", choices=["embed", "search", "prompt", "invoke"], help="Action to perform: 'embed' generate the vector embeddings, 'search' to perform semantic search, 'prompt' to generate the prompt for LLM, 'invoke' to implement RAG")
     parser.add_argument("query", help="Query to be used for embedding, search, or RAG")
     args = parser.parse_args()
     query = args.query
@@ -163,6 +172,8 @@ def main():
         embed(query, bedrock)
     elif args.action == "search":
         search(query, bedrock, pc)
+    elif args.action == "prompt":
+        prompt(query, bedrock, pc)
     elif args.action == "invoke":
         invoke(query, bedrock, pc)
 
