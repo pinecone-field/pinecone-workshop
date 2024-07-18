@@ -10,6 +10,7 @@ import time
 from pinecone import ServerlessSpec
 from pinecone import Pinecone
 from fastapi.staticfiles import StaticFiles
+from google.cloud import aiplatform
 
 app = FastAPI()
 
@@ -17,6 +18,8 @@ load_dotenv()
 API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
+AWS_TITAN_ENABLED = os.getenv("AWS_TITAN_ENABLED").lower() == 'true'
+GCP_GEMINI_ENABLED = os.getenv("GCP_GEMINI_ENABLED").lower() == 'true'
 
 def create_pinecone_connection():
     pc = Pinecone(api_key=API_KEY)
@@ -31,6 +34,10 @@ def create_bedrock_connection():
                 endpoint_url=f'https://bedrock-runtime.{region}.amazonaws.com',
                                     config=config)
     return bedrock
+
+def create_gemini_connection():
+    aiplatform.init()
+    return aiplatform
 
 def titan_text_embeddings(docs: str, bedrock) -> list[float]:
     body = json.dumps({
@@ -53,6 +60,11 @@ def titan_text_embeddings(docs: str, bedrock) -> list[float]:
     response_body = json.loads(response['body'].read())
     embedding = response_body.get('embedding')
     return embedding
+
+def gemini_text_embeddings(docs: str, gemini) -> list[float]:
+    model = gemini.TextEmbeddingModel.from_pretrained("textembedding-gecko@001")
+    embeddings = model.get_embeddings([docs])
+    return embeddings[0]
 
 def model_args(query):
     query_model_args = {"prompt": query, "max_tokens_to_sample": 1000, "stop_sequences": [], "temperature": 0.0, "top_p": 0.9 }
@@ -129,11 +141,18 @@ def create_prompt(query, context_str):
 async def invoke(request: Request):
     body = await request.json()
     query = body['question']
-    bedrock = create_bedrock_connection()
+    bedrock = create_bedrock_connection() if AWS_TITAN_ENABLED else None
+    gemini = create_gemini_connection() if GCP_GEMINI_ENABLED else None
     pc = create_pinecone_connection()
     index = pc.Index(PINECONE_INDEX_NAME)
 
-    query_embedding = titan_text_embeddings(query, bedrock)
+    if AWS_TITAN_ENABLED:
+        query_embedding = titan_text_embeddings(query, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        query_embedding = gemini_text_embeddings(query, gemini)
+    else:
+        return {"error": "No embedding service enabled"}
+
     start_time = time.time()
     search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     end_time = time.time()

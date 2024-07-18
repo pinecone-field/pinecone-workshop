@@ -14,6 +14,8 @@ import pandas as pd
 import itertools
 import boto3
 from botocore.config import Config
+import vertexai
+from vertexai.preview.language_models import TextEmbeddingModel
 
 load_dotenv()
 
@@ -21,8 +23,11 @@ API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
 AWS_TITAN_ENABLED = os.getenv("AWS_TITAN_ENABLED").lower() == 'true'
+GCP_GEMINI_ENABLED = os.getenv("GCP_GEMINI_ENABLED").lower() == 'true'
 DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
-
+GEMINI_PROJECT=os.getenv("GEMINI_PROJECT", "")
+GEMINI_LOCATION=os.getenv("GEMINI_LOCATION", "us-central1")
+GEMINI_MODEL=os.getenv("GEMINI_MODEL", "textembedding-gecko@001")
 # Commented out some sections to reduce the scrape time
 news_sections = ["us", "world", "politics", "business", "health", "entertainment", "style", "travel", "sports"]
 #news_sections = ["world", "politics", "business"]
@@ -98,6 +103,17 @@ def generate_embeddings_from_text(text):
                                     'chunk_id':chunks.index(chunk),
                                     'embedding':embedding })
         print(f"Generated embeddings for {len(chunks)} chunks using AWS Titan")
+    elif GCP_GEMINI_ENABLED:
+        vertexai.init(project=GEMINI_PROJECT, location=GEMINI_LOCATION)
+        model = TextEmbeddingModel.from_pretrained(GEMINI_MODEL)
+        for chunk in chunks:
+            response = model.get_embeddings([chunk])
+            embedding = response[0].values
+            
+            text_embeddings.append({'text':chunk,
+                                    'chunk_id':chunks.index(chunk),
+                                    'embedding':embedding })
+        print(f"Generated embeddings for {len(chunks)} chunks using GCP Gemini")
     else:
         model = AutoModel.from_pretrained('intfloat/multilingual-e5-large')
         tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')

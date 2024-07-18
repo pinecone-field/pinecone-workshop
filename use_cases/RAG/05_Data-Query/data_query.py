@@ -8,6 +8,8 @@ from botocore.config import Config
 import time
 from pinecone import ServerlessSpec
 from pinecone import Pinecone
+import vertexai
+from vertexai.preview.language_models import TextEmbeddingModel, TextGenerationModel
 
 load_dotenv()
 
@@ -15,7 +17,12 @@ API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_NAMESPACE = os.getenv("PINECONE_NAMESPACE")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "./jsonl")
-
+AWS_TITAN_ENABLED = os.getenv("AWS_TITAN_ENABLED").lower() == 'true'
+GCP_GEMINI_ENABLED = os.getenv("GCP_GEMINI_ENABLED").lower() == 'true'
+GEMINI_PROJECT=os.getenv("GEMINI_PROJECT", "")
+GEMINI_LOCATION=os.getenv("GEMINI_LOCATION", "us-central1")
+GEMINI_MODEL=os.getenv("GEMINI_MODEL", "textembedding-gecko@001")
+GEMINI_TEXT_GEN_MODEL=os.getenv("GEMINI_TEXT_GEN_MODEL", "gemini-1.0-pro")
 
 def create_pinecone_connection():
     pc = Pinecone(api_key=API_KEY)
@@ -30,6 +37,10 @@ def create_bedrock_connection():
                 endpoint_url=f'https://bedrock-runtime.{region}.amazonaws.com',
                                     config=config)
     return bedrock
+
+def create_gemini_connection():
+    vertexai.init(project=GEMINI_PROJECT, location=GEMINI_LOCATION)
+    return vertexai
 
 def titan_text_embeddings(docs: str, bedrock) -> list[float]:
     body = json.dumps({
@@ -52,6 +63,35 @@ def titan_text_embeddings(docs: str, bedrock) -> list[float]:
     response_body = json.loads(response['body'].read())
     embedding = response_body.get('embedding')
     return embedding
+
+def gemini_text_embeddings(docs: str, gemini) -> list[float]:
+    model = TextEmbeddingModel.from_pretrained(GEMINI_MODEL)
+    embeddings = model.get_embeddings([docs])
+    return embeddings[0].values
+
+def gemini_text_generation(prompt: str, gemini) -> str:
+    model = TextGenerationModel.from_pretrained(GEMINI_TEXT_GEN_MODEL)
+    output = []
+    try:
+        body = json.dumps(model_args(prompt))
+        response = model.generate(body)
+        stream = response.get('body')
+        
+        i = 1
+        if stream:
+            for event in stream:
+                chunk = event.get('chunk')
+                if chunk:
+                    chunk_obj = json.loads(chunk.get('bytes').decode())
+                    text = chunk_obj['completion']
+                    output.append(text)
+                    print(text,end='')
+                    i+=1
+                
+    except Exception as error:
+        print(f"Error during Gemini text generation: {error}")
+        
+    return ''.join(output)
 
 def model_args(query):
     query_model_args = {"prompt": query, "max_tokens_to_sample": 1000, "stop_sequences": [], "temperature": 0.0, "top_p": 0.9 }
@@ -123,22 +163,31 @@ def create_prompt(query, context_str):
 
         
 
-def embed(query, bedrock):
+def embed(query, bedrock, gemini):
     print("Query: " + query)
-    query_embedding = titan_text_embeddings(query, bedrock)
+    if AWS_TITAN_ENABLED:
+        query_embedding = titan_text_embeddings(query, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        query_embedding = gemini_text_embeddings(query, gemini)
     print("Vector embedding generated: " + str(query_embedding))
     return query_embedding
 
-def search(query, bedrock, pc):
+def search(query, bedrock, gemini, pc):
     index = pc.Index(PINECONE_INDEX_NAME)
-    query_embedding = titan_text_embeddings(query, bedrock)
+    if AWS_TITAN_ENABLED:
+        query_embedding = titan_text_embeddings(query, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        query_embedding = gemini_text_embeddings(query, gemini)
     res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     print("Semantic Search results: " + str(res))
     return res
 
-def prompt(query, bedrock, pc):
+def prompt(query, bedrock, gemini, pc):
     index = pc.Index(PINECONE_INDEX_NAME)
-    query_embedding = titan_text_embeddings(query, bedrock)
+    if AWS_TITAN_ENABLED:
+        query_embedding = titan_text_embeddings(query, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        query_embedding = gemini_text_embeddings(query, gemini)
     search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     contexts = [match.metadata["text"] for match in search_res.matches]
     context_str = construct_context(contexts=contexts)
@@ -146,17 +195,21 @@ def prompt(query, bedrock, pc):
     print("Prompt generated: " + str(llm_prompt))
     return llm_prompt
 
-def invoke(query, bedrock, pc):
+def invoke(query, bedrock, gemini, pc):
     index = pc.Index(PINECONE_INDEX_NAME)
-    query_embedding = titan_text_embeddings(query, bedrock)
+    if AWS_TITAN_ENABLED:
+        query_embedding = titan_text_embeddings(query, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        query_embedding = gemini_text_embeddings(query, gemini)
     search_res = index.query(vector=query_embedding, top_k=10, namespace=PINECONE_NAMESPACE,include_metadata=True)
     contexts = [match.metadata["text"] for match in search_res.matches]
     context_str = construct_context(contexts=contexts)
     llm_prompt = create_prompt(query, context_str)
-    response = invoke_bedrock(llm_prompt, bedrock)
+    if AWS_TITAN_ENABLED:
+        response = invoke_bedrock(llm_prompt, bedrock)
+    elif GCP_GEMINI_ENABLED:
+        response = gemini_text_generation(llm_prompt, gemini)
     return response
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for querying pinecone index data")
@@ -166,16 +219,17 @@ def main():
     query = args.query
 
     bedrock = create_bedrock_connection()
+    gemini = create_gemini_connection()
     pc = create_pinecone_connection()
 
     if args.action == "embed":
-        embed(query, bedrock)
+        embed(query, bedrock, gemini)
     elif args.action == "search":
-        search(query, bedrock, pc)
+        search(query, bedrock, gemini, pc)
     elif args.action == "prompt":
-        prompt(query, bedrock, pc)
+        prompt(query, bedrock, gemini, pc)
     elif args.action == "invoke":
-        invoke(query, bedrock, pc)
+        invoke(query, bedrock, gemini, pc)
 
 if __name__ == "__main__":
     main()
