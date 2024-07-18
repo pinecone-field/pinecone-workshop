@@ -9,8 +9,9 @@ import time
 from pinecone import ServerlessSpec
 from pinecone import Pinecone
 import vertexai
-from vertexai.preview.language_models import TextEmbeddingModel, TextGenerationModel
-
+from vertexai.generative_models import GenerativeModel
+from vertexai.language_models import TextEmbeddingModel
+\
 load_dotenv()
 
 API_KEY = os.getenv("PINECONE_API_KEY")
@@ -70,23 +71,14 @@ def gemini_text_embeddings(docs: str, gemini) -> list[float]:
     return embeddings[0].values
 
 def gemini_text_generation(prompt: str, gemini) -> str:
-    model = TextGenerationModel.from_pretrained(GEMINI_TEXT_GEN_MODEL)
+    model = GenerativeModel(GEMINI_TEXT_GEN_MODEL)
     output = []
     try:
         body = json.dumps(model_args(prompt))
-        response = model.generate(body)
-        stream = response.get('body')
+        responses = model.generate_content(body, stream=True)
         
-        i = 1
-        if stream:
-            for event in stream:
-                chunk = event.get('chunk')
-                if chunk:
-                    chunk_obj = json.loads(chunk.get('bytes').decode())
-                    text = chunk_obj['completion']
-                    output.append(text)
-                    print(text,end='')
-                    i+=1
+        for response in responses:
+            print(response.text, end="")
                 
     except Exception as error:
         print(f"Error during Gemini text generation: {error}")
