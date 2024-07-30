@@ -17,7 +17,7 @@ from botocore.config import Config
 import vertexai
 from vertexai.preview.language_models import TextEmbeddingModel
 
-load_dotenv()
+# load_dotenv()
 
 API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")

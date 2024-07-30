@@ -11,8 +11,7 @@ from pinecone import Pinecone
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from vertexai.language_models import TextEmbeddingModel
-\
-load_dotenv()
+# load_dotenv()
 
 API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
