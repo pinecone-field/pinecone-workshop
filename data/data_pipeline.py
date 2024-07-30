@@ -131,7 +131,7 @@ def generate_embeddings_from_text(text):
 
 def create_bedrock_connection():
     config = Config(connect_timeout=5, read_timeout=60, retries={"total_max_attempts": 20, "mode": "adaptive"})
-    region = 'us-west-2'
+    region = 'us-east-1'
     bedrock = boto3.client(
                 service_name='bedrock-runtime',
                 region_name=region,
