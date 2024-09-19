@@ -56,7 +56,7 @@ def get_article_details(urls, section):
             soup = BeautifulSoup(response.content, 'html.parser')
             script_tag = soup.find('script', {'type': 'application/ld+json'})
             data = json.loads(script_tag.string)
-            text = data['articleBody']
+            text = data[0]['articleBody']
             details.append({"url": url, "text": text, "scrape_date": date.today().strftime("%m/%d/%Y")})
             print(f"Web scraped article from {url}")
             time.sleep(random.uniform(.1, 1))  
