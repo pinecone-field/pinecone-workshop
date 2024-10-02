@@ -156,6 +156,19 @@ def upsert():
                 df = pd.read_json(file, lines=True)
                 index.upsert_from_dataframe(df, namespace=PINECONE_NAMESPACE)
 
+def upsert_into_namespace():
+    pc = Pinecone(api_key=API_KEY)
+    index = pc.Index(PINECONE_INDEX_NAME)
+
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.jsonl'):
+            filepath = os.path.join(DATA_DIR, filename)
+            with open(filepath, 'r') as file:
+                df = pd.read_json(file, lines=True)
+                PINECONE_NAMESPACE = filepath.split(".")[-2].split("_")[-1]
+                print(f"Namespace to insert recs: {PINECONE_NAMESPACE}")
+                index.upsert_from_dataframe(df, namespace=PINECONE_NAMESPACE)
+
 def print_test_vectors():
     for filename in os.listdir(DATA_DIR):
         if filename.endswith('.jsonl'):
@@ -184,7 +197,7 @@ def get_article_id(url):
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for upserting and deleted pinecone index data")
-    parser.add_argument("action", choices=["scrape", "upsert", "delete", "print"], help="Action to perform: 'scrape' to scrape data from base url, 'upsert' to insert or update data, 'delete' to delete all data in namespace")
+    parser.add_argument("action", choices=["scrape", "upsert", "delete", "print", "upsert_into_namespace"], help="Action to perform: 'scrape' to scrape data from base url, 'upsert' to insert or update data, 'delete' to delete all data in namespace, 'upsert' data into multiple namespaces")
     args = parser.parse_args()
 
     if args.action == "scrape":
@@ -195,6 +208,8 @@ def main():
         print_test_vectors()
     elif args.action == "delete":
         delete_data()
+    elif args.action == "upsert_into_namespace":
+        upsert_into_namespace()
 
 if __name__ == "__main__":
     main()
